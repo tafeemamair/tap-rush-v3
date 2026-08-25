@@ -274,9 +274,9 @@
       num: 1,
       name: 'CALIBRATION',
       subtitle: 'SYNAPSE INITIALIZATION',
-      targetDuration: 1750,
-      spawnInterval: 950,
-      targetsRequired: 14,
+      targetDuration: 2400,
+      spawnInterval: 1200,
+      targetsRequired: 15,
       allowedTypes: [TARGET_TYPES.STANDARD],
       eventChance: 0
     },
@@ -284,38 +284,38 @@
       num: 2,
       name: 'CONTACT',
       subtitle: 'ACCELERATION PROTOCOL',
-      targetDuration: 1350,
-      spawnInterval: 760,
-      targetsRequired: 18,
+      targetDuration: 1850,
+      spawnInterval: 950,
+      targetsRequired: 20,
       allowedTypes: [TARGET_TYPES.STANDARD, TARGET_TYPES.GOLD, TARGET_TYPES.SHIELD],
-      eventChance: 0.15
+      eventChance: 0.10
     },
     {
       num: 3,
       name: 'INSTABILITY',
       subtitle: 'MULTI-FREQUENCY SURGE',
-      targetDuration: 1100,
-      spawnInterval: 600,
-      targetsRequired: 24,
+      targetDuration: 1450,
+      spawnInterval: 750,
+      targetsRequired: 25,
       allowedTypes: [TARGET_TYPES.STANDARD, TARGET_TYPES.GOLD, TARGET_TYPES.QUANTUM, TARGET_TYPES.SHIELD],
-      eventChance: 0.3
+      eventChance: 0.25
     },
     {
       num: 4,
       name: 'CRITICAL',
       subtitle: 'HAZARD THREAT ENGAGED',
-      targetDuration: 920,
-      spawnInterval: 500,
+      targetDuration: 1150,
+      spawnInterval: 600,
       targetsRequired: 30,
       allowedTypes: [TARGET_TYPES.STANDARD, TARGET_TYPES.GOLD, TARGET_TYPES.QUANTUM, TARGET_TYPES.SHIELD, TARGET_TYPES.DANGER],
-      eventChance: 0.45
+      eventChance: 0.40
     },
     {
       num: 5,
       name: 'HYPERDRIVE',
       subtitle: 'RELENTLESS OVERLOAD',
-      targetDuration: 780,
-      spawnInterval: 400,
+      targetDuration: 900,
+      spawnInterval: 480,
       targetsRequired: 9999, // Endless final trial
       allowedTypes: [TARGET_TYPES.STANDARD, TARGET_TYPES.GOLD, TARGET_TYPES.QUANTUM, TARGET_TYPES.SHIELD, TARGET_TYPES.DANGER],
       eventChance: 0.55
@@ -569,6 +569,12 @@
       const sector = SECTORS[this.stageIndex];
       let delay = sector.spawnInterval;
 
+      // Dynamic Sector 5 progression: reduce interval by 0.3% per hit, min 70% of base
+      if (this.stageIndex === 4) {
+        const reduction = Math.max(0.7, 1 - (this.stageHits * 0.003));
+        delay *= reduction;
+      }
+
       // Event Modifiers
       if (this.activeEvent && this.activeEvent.id === 'SIGNAL_SURGE') delay *= 0.6;
       if (this.isFeverActive) delay *= 0.65;
@@ -587,19 +593,130 @@
       }, delay);
     }
 
+    getSafeSpawnPosition(radius) {
+      const bounds = this.playfield.getBoundingClientRect();
+      
+      let minX = radius + 22;
+      let maxX = (bounds && bounds.width) ? (bounds.width - radius - 22) : 400;
+      let minY = radius + 22;
+      let maxY = (bounds && bounds.height) ? (bounds.height - radius - 30) : 700;
+
+      // Defensive constraints to prevent negative or zero range in random selection
+      if (maxX <= minX) {
+        minX = radius;
+        maxX = Math.max(radius + 10, (bounds && bounds.width) ? bounds.width - radius : 360);
+      }
+      if (maxY <= minY) {
+        minY = radius;
+        maxY = Math.max(radius + 10, (bounds && bounds.height) ? bounds.height - radius : 600);
+      }
+
+      // Bounding boxes of active UI overlays to avoid
+      const avoidRects = [];
+
+      if (this.hud && !this.hud.classList.contains('hidden')) {
+        avoidRects.push(this.hud.getBoundingClientRect());
+      }
+      if (this.comboDisplay && !this.comboDisplay.classList.contains('hidden')) {
+        avoidRects.push(this.comboDisplay.getBoundingClientRect());
+      }
+      if (this.eventTicker && !this.eventTicker.classList.contains('hidden')) {
+        avoidRects.push(this.eventTicker.getBoundingClientRect());
+      }
+      if (this.stageBanner && !this.stageBanner.classList.contains('hidden')) {
+        avoidRects.push(this.stageBanner.getBoundingClientRect());
+      }
+
+      // Helper function to check if a circle intersects with a rectangle
+      const intersects = (cX, cY, r, rect) => {
+        const closestX = Math.max(rect.left, Math.min(cX, rect.right));
+        const closestY = Math.max(rect.top, Math.min(cY, rect.bottom));
+        const distanceX = cX - closestX;
+        const distanceY = cY - closestY;
+        return (distanceX * distanceX + distanceY * distanceY) < (r * r);
+      };
+
+      let posX = 0;
+      let posY = 0;
+      let clientX = 0;
+      let clientY = 0;
+      let found = false;
+      const maxAttempts = 120;
+      const safetyMargin = 12; // Extra spacing for gameplay visibility
+      const checkRadius = radius + safetyMargin;
+
+      const playfieldLeft = bounds ? bounds.left : 0;
+      const playfieldTop = bounds ? bounds.top : 0;
+      const playfieldHeight = bounds ? bounds.height : 768;
+
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        posX = Math.random() * (maxX - minX) + minX;
+        posY = Math.random() * (maxY - minY) + minY;
+        clientX = playfieldLeft + posX;
+        clientY = playfieldTop + posY;
+
+        let collision = false;
+        for (const rect of avoidRects) {
+          if (intersects(clientX, clientY, checkRadius, rect)) {
+            collision = true;
+            break;
+          }
+        }
+
+        if (!collision) {
+          found = true;
+          break;
+        }
+      }
+
+      // Relaxed check: if no spot found, avoid only HUD and Stage Announcement
+      if (!found) {
+        const criticalRects = [];
+        if (this.hud && !this.hud.classList.contains('hidden')) {
+          criticalRects.push(this.hud.getBoundingClientRect());
+        }
+        if (this.stageBanner && !this.stageBanner.classList.contains('hidden')) {
+          criticalRects.push(this.stageBanner.getBoundingClientRect());
+        }
+
+        for (let attempt = 0; attempt < 50; attempt++) {
+          posX = Math.random() * (maxX - minX) + minX;
+          posY = Math.random() * (maxY - minY) + minY;
+          clientX = playfieldLeft + posX;
+          clientY = playfieldTop + posY;
+
+          let collision = false;
+          for (const rect of criticalRects) {
+            if (intersects(clientX, clientY, checkRadius, rect)) {
+              collision = true;
+              break;
+            }
+          }
+
+          if (!collision) {
+            found = true;
+            break;
+          }
+        }
+      }
+
+      // Hard fallback: place in the lower half of the screen below potential upper overlay areas
+      if (!found) {
+        const fallbackMinY = playfieldHeight * 0.48;
+        const fallbackMaxY = playfieldHeight - radius - 30;
+        posX = Math.random() * (maxX - minX) + minX;
+        posY = Math.random() * (fallbackMaxY - fallbackMinY) + fallbackMinY;
+      }
+
+      return { posX, posY };
+    }
+
     spawnTarget() {
       if (!this.isRunning) return;
       const sector = SECTORS[this.stageIndex];
 
-      const bounds = this.playfield.getBoundingClientRect();
       const radius = 33;
-      const minX = radius + 22;
-      const maxX = bounds.width - radius - 22;
-      const minY = radius + 90; // Clear Top HUD & Tickers
-      const maxY = bounds.height - radius - 35;
-
-      const posX = Math.random() * (maxX - minX) + minX;
-      const posY = Math.random() * (maxY - minY) + minY;
+      const { posX, posY } = this.getSafeSpawnPosition(radius);
 
       const targetType = this.selectTargetType(sector);
       const id = ++this.targetIdCounter;
@@ -612,6 +729,12 @@
       targetEl.style.top = `${posY}px`;
 
       let duration = sector.targetDuration;
+      // Dynamic Sector 5 progression: reduce duration by 0.3% per hit, min 70% of base
+      if (this.stageIndex === 4) {
+        const reduction = Math.max(0.7, 1 - (this.stageHits * 0.003));
+        duration *= reduction;
+      }
+
       if (targetType === TARGET_TYPES.GOLD) duration *= 0.75;
       if (targetType === TARGET_TYPES.QUANTUM) duration *= 0.65; // Ultra fast risk window
       if (this.isFeverActive) duration *= 0.85;
