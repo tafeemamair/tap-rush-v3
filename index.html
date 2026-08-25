@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#05070b" />
+  <title>TAP RUSH V3 // Cyber Arcade Protocol</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,600;0,700;1,700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="theme-default">
+  <!-- Main Arcade Shell -->
+  <main id="app-container" class="game-shell">
+    <!-- Ambient Particle / Canvas FX Layer -->
+    <canvas id="fx-canvas"></canvas>
+
+    <!-- Top HUD / Status Bar -->
+    <header id="hud" class="hud-layer hidden">
+      <div class="hud-metric hud-score-box">
+        <span class="hud-label">SCORE</span>
+        <span id="hud-score" class="hud-val">00000</span>
+      </div>
+
+      <div class="hud-center-group">
+        <div class="hud-metric hud-stage-box">
+          <span class="hud-label" id="hud-sector-label">SECTOR</span>
+          <span id="hud-stage" class="hud-val">01</span>
+        </div>
+        <!-- Overdrive / Fever Meter -->
+        <div class="fever-meter-wrap" id="fever-meter-container">
+          <div id="fever-bar" class="fever-bar-fill"></div>
+          <span id="fever-badge" class="fever-tag">OVERDRIVE READY</span>
+        </div>
+      </div>
+
+      <div class="hud-metric hud-lives-box">
+        <span class="hud-label">SHIELD</span>
+        <div id="hud-lives" class="shield-pips">
+          <span class="pip active"></span>
+          <span class="pip active"></span>
+          <span class="pip active"></span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Floating Combo Indicator -->
+    <div id="combo-display" class="combo-banner hidden">
+      <span class="combo-title">COMBO STREAK</span>
+      <span id="combo-multiplier" class="combo-number">×0</span>
+      <span id="combo-rating" class="combo-sub">CALIBRATING</span>
+    </div>
+
+    <!-- Active Event Alert Banner (Signal Surge, Multi-Rush, Precision Window, etc.) -->
+    <div id="event-ticker" class="event-ticker hidden">
+      <span class="event-icon" id="event-icon">⚡</span>
+      <span class="event-title" id="event-title">SIGNAL SURGE DETECTED</span>
+      <div class="event-progress-bar"><div id="event-progress-fill" class="event-progress-fill"></div></div>
+    </div>
+
+    <!-- Active Gameplay Playfield -->
+    <section id="playfield" class="playfield-area" aria-label="Target Zone"></section>
+
+    <!-- Center Screen Milestone / Sector Transitions -->
+    <div id="stage-banner" class="stage-announcer hidden">
+      <div class="stage-sub-tag" id="stage-ann-sub">PROTOCOL ESCALATION</div>
+      <div class="stage-main-tag" id="stage-ann-title">SECTOR 02</div>
+      <div class="stage-desc" id="stage-ann-desc">CONTACT // ACCELERATION ACTIVE</div>
+    </div>
+
+    <!-- START / TITLE SCREEN -->
+    <section id="screen-start" class="game-screen active-screen">
+      <div class="screen-content">
+        <div class="brand-tag">NEURAL ARCADE // V3.0</div>
+        <h1 class="game-title">TAP<span class="accent-cyan">RUSH</span></h1>
+        <p class="game-tagline">DYNAMIC REFLEX SYSTEM // SECTOR PROTOCOL</p>
+
+        <!-- Target Intelligence Panel -->
+        <div class="intel-card">
+          <div class="intel-row">
+            <span class="intel-dot dot-cyan"></span>
+            <span><strong>CYAN</strong>: Core Target (+100)</span>
+          </div>
+          <div class="intel-row">
+            <span class="intel-dot dot-gold"></span>
+            <span><strong>GOLD</strong>: High-Value Burst (+350, +Energy)</span>
+          </div>
+          <div class="intel-row">
+            <span class="intel-dot dot-quantum"></span>
+            <span><strong>VIOLET</strong>: Quantum Risk (+600, Fast Decay)</span>
+          </div>
+          <div class="intel-row">
+            <span class="intel-dot dot-shield"></span>
+            <span><strong>GREEN</strong>: Shield Restore (+1 Life)</span>
+          </div>
+          <div class="intel-row">
+            <span class="intel-dot dot-danger"></span>
+            <span><strong>RED</strong>: Hazard Trap (DO NOT TAP — Disarm for +50)</span>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button id="btn-play" class="btn-cyber-primary" type="button">
+            <span class="btn-text">INITIALIZE RUN</span>
+          </button>
+          <button id="btn-open-vault" class="btn-cyber-ghost" type="button">
+            ARCHIVES &amp; UNLOCKS
+          </button>
+        </div>
+
+        <div class="start-footer-stats">
+          <span>HIGH SCORE: <strong id="start-high-score">0</strong></span>
+          <span>BEST STREAK: <strong id="start-best-combo">×0</strong></span>
+          <span>RUNS: <strong id="start-total-runs">0</strong></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- GAME OVER / PERFORMANCE DEBRIEF SCREEN -->
+    <section id="screen-gameover" class="game-screen hidden">
+      <div class="screen-content">
+        <div class="status-header">
+          <span class="danger-tag">RUN TERMINATED</span>
+          <h2 id="go-rank" class="rank-display">CYBER ACE</h2>
+          <span class="rank-sub" id="go-rank-sub">REFLEX RATING: 94.2%</span>
+        </div>
+
+        <!-- Metric Debrief Grid -->
+        <div class="debrief-grid">
+          <div class="debrief-card">
+            <span class="db-label">FINAL SCORE</span>
+            <span id="go-score" class="db-val val-glow">00000</span>
+            <span id="go-new-record" class="record-badge hidden">NEW HIGH SCORE!</span>
+          </div>
+          <div class="debrief-card">
+            <span class="db-label">BEST STREAK</span>
+            <span id="go-combo" class="db-val">×00</span>
+          </div>
+          <div class="debrief-card">
+            <span class="db-label">ACCURACY</span>
+            <span id="go-accuracy" class="db-val">00%</span>
+          </div>
+          <div class="debrief-card">
+            <span class="db-label">SECTOR REACHED</span>
+            <span id="go-stage" class="db-val">SECTOR 01</span>
+          </div>
+          <div class="debrief-card">
+            <span class="db-label">EVENTS SURVIVED</span>
+            <span id="go-events" class="db-val">0</span>
+          </div>
+          <div class="debrief-card">
+            <span class="db-label">TRAPS DISARMED</span>
+            <span id="go-traps" class="db-val">0</span>
+          </div>
+        </div>
+
+        <!-- Unlocked Callout Banner -->
+        <div id="go-unlocked-banner" class="unlock-notify hidden">
+          <span class="unlock-icon">🔓</span>
+          <span id="go-unlocked-text">NEW ARCHIVE PROTOCOL UNLOCKED</span>
+        </div>
+
+        <div class="btn-group">
+          <button id="btn-retry" class="btn-cyber-primary" type="button">
+            <span class="btn-text">ONE MORE RUN</span>
+          </button>
+          <button id="btn-go-home" class="btn-cyber-ghost" type="button">
+            SYSTEM CONSOLE
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ARCHIVES & UNLOCKS MODAL -->
+    <section id="modal-vault" class="modal-overlay hidden">
+      <div class="modal-window">
+        <div class="modal-header">
+          <h3>SYSTEM ARCHIVES &amp; THEMES</h3>
+          <button id="btn-close-vault" class="btn-icon" aria-label="Close">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="tab-section">
+            <h4 class="section-title">CHROMA THEMES</h4>
+            <div id="theme-selectors" class="theme-grid"></div>
+          </div>
+
+          <div class="tab-section">
+            <h4 class="section-title">PERFORMANCE RECORDS</h4>
+            <div class="lifetime-stats-grid">
+              <div class="stat-pill">LIFETIME TAPS: <strong id="stat-life-taps">0</strong></div>
+              <div class="stat-pill">TOTAL RUNS: <strong id="stat-life-runs">0</strong></div>
+              <div class="stat-pill">TOTAL EVENTS: <strong id="stat-life-events">0</strong></div>
+              <div class="stat-pill">HIGHEST SECTOR: <strong id="stat-life-sector">01</strong></div>
+            </div>
+          </div>
+
+          <div class="tab-section">
+            <h4 class="section-title">ACHIEVEMENT PROTOCOLS</h4>
+            <div id="achievements-list" class="achieve-list"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
