@@ -940,3 +940,38 @@ html, body {
   text-shadow: 0 0 8px var(--c-gold-glow);
 }
 .timed-countdown.hidden { display: none !important; }
+
+/* V4 Focus Rush: always-readable instructions that never consume taps. */
+.focus-instruction {
+  position: absolute;
+  z-index: 21;
+  top: calc(var(--safe-top) + 155px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  pointer-events: none;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: 18px;
+  background: rgba(5, 7, 11, .82);
+  border: 1px solid rgba(255,255,255,.18);
+}
+.focus-instruction span:first-child { color: var(--c-cyan); }
+.focus-instruction span:last-child { color: #ff477a; }
+.focus-instruction.hidden { display: none !important; }
+.focus-mode-description {
+  text-align: center;
+  font-size: .77rem;
+  line-height: 1.5;
+  color: #a9c7d4;
+  margin: 8px auto 12px;
+  max-width: 340px;
+}
+@media(max-height: 650px) {
+  .focus-instruction { top: calc(var(--safe-top) + 118px); font-size: .6rem; }
+}
