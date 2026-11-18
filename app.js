@@ -448,7 +448,7 @@
 
       // Precision Miss Detection
       this.playfield.addEventListener('pointerdown', (e) => {
-        if (!this.isRunning) return;
+        if (!this.isRunning || this.enforceTimedDeadline()) return;
         if (e.target === this.playfield) {
           this.totalTaps++;
           this.breakCombo();
@@ -520,11 +520,22 @@
       }
     }
 
+    // A deadline check at each gameplay boundary prevents scoring after the clock
+    // even if a browser throttles the interval while the tab is in the background.
+    enforceTimedDeadline() {
+      if (!this.isRunning) return true;
+      if (this.mode === 'endless') return false;
+      if (Date.now() < this.timedDeadline) return false;
+      this.hudTimer.textContent = '0s';
+      this.endGame();
+      return true;
+    }
+
     updateTimedClock() {
       if (!this.isRunning || this.mode === 'endless') return;
+      if (this.enforceTimedDeadline()) return;
       const remaining = Math.max(0, this.timedDeadline - Date.now());
       this.hudTimer.textContent = `${Math.ceil(remaining / 1000)}s`;
-      if (remaining === 0) this.endGame();
     }
 
     endGame() {
@@ -620,7 +631,7 @@
      SPAWNING, SECTORS & EVENT TRIGGERS
      ========================================================================== */
     scheduleNextSpawn() {
-      if (!this.isRunning) return;
+      if (!this.isRunning || this.enforceTimedDeadline()) return;
       const sector = SECTORS[this.stageIndex];
       let delay = this.mode === 'focus' ? Math.max(450, 920 - this.validHits * 7) : sector.spawnInterval;
 
@@ -767,7 +778,7 @@
     }
 
     spawnTarget() {
-      if (!this.isRunning) return;
+      if (!this.isRunning || this.enforceTimedDeadline()) return;
       const sector = SECTORS[this.stageIndex];
 
       const radius = 33;
@@ -842,7 +853,7 @@
        TARGET RESOLUTION, COMBO MILESTONES & RISK-REWARD
        ========================================================================== */
     handleTargetHit(id, type, x, y) {
-      if (!this.isRunning || !this.activeTargets.has(id)) return;
+      if (!this.isRunning || this.enforceTimedDeadline() || !this.activeTargets.has(id)) return;
       const targetObj = this.activeTargets.get(id);
       clearTimeout(targetObj.timer);
       targetObj.element.remove();
@@ -921,7 +932,7 @@
     }
 
     handleTargetMiss(id, type, x, y) {
-      if (!this.isRunning || !this.activeTargets.has(id)) return;
+      if (!this.isRunning || this.enforceTimedDeadline() || !this.activeTargets.has(id)) return;
       const targetObj = this.activeTargets.get(id);
       targetObj.element.remove();
       this.activeTargets.delete(id);
