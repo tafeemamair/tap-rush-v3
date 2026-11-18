@@ -1,22 +1,49 @@
-# Tap Rush V4 — Android test-build workflow
+# Tap Rush V4 — Android build and device QA
 
-Status: **PREPARATION ONLY**. No APK/AAB has been generated or tested by this documentation change.
+**Status:** Web gameplay and Settings were manually checked in Chrome, and 27 Node tests passed in the latest reported local verification. No APK or AAB has yet been generated or tested on Android.
 
-## Project
-- Existing HTML, CSS and JavaScript stay at repository root for the current Vercel deployment.
-- `npm run build` copies the four required assets into ignored `www/` for local Capacitor packaging.
-- `npm test` performs dependency-free static smoke checks. These **do not replace gameplay/runtime testing**.
-- Android package identifier is currently reserved as a *provisional proposal*: `com.tafeemamair.taprush`. Confirm before the first Play listing; once an app is published its application ID cannot simply be changed for updates.
-- No online services or accounts are required for the current offline game modes. External Google Fonts may need network; fallback fonts should be checked offline.
+## Baseline
+- Repository: https://github.com/tafeemamair/tap-rush-v3
+- Source files: `index.html`, `style.css`, `app.js`, `score-challenge.js`, `settings.js`.
+- `npm run build` creates ignored `www/` assets for Capacitor and Vercel.
+- `npm test` runs source and simulated-DOM behavior tests, not physical Android tests.
+- `capacitor.config.json`: app ID `com.tafeemamair.taprush` is **provisional**. Confirm it before Play Console creation. Keep it stable thereafter.
+- The game uses external Google Fonts; verify the offline font fallbacks.
+- `android/` and generated build output are intentionally ignored in this initial experiment. Preserve the generated native project locally until a decision is made to version it.
 
-## Development requirements
-Capacitor 8 requires Node.js 22+, Android Studio 2025.2.1+ and Android SDK API 36 to build for Google's November 2026 new-app target policy. Install Android Studio on the desktop PC, not the storage-constrained laptop, if possible.
+## Requirements
+- Node 22+ (user's latest verified laptop Node: 24.13.0).
+- Capacitor 8 requires Android Studio 2025.2.1+; install SDK Platform API 36 and build tools on the **desktop PC** if possible to save laptop storage.
+- Google Play new-app submissions currently require Android 16 / API 36+ target. Confirm native `targetSdkVersion` after generating the project, and recheck policy before publishing.
+- An Android phone with USB debugging, a USB cable and Windows USB driver if needed.
+- No emulator or Android Studio is needed for the laptop-only steps.
 
-## On the Windows desktop (PowerShell)
+Official documentation:
+- https://capacitorjs.com/docs/getting-started/environment-setup
+- https://capacitorjs.com/docs/android
+- https://support.google.com/googleplay/android-developer/answer/11926878
+
+## Laptop: lightweight preflight (PowerShell)
+
+```powershell
+cd E:\Tafeem\tap-rush-v4-gameplay-regression
+git status --short
+git fetch origin
+git switch -c test/v4-android-preflight origin/main
+node --version
+npm --version
+npm test
+npm run build
+node --check settings.js
+```
+
+If `test/v4-android-preflight` already exists, choose a new branch name. Do not reset/delete existing local changes. Check that `www/settings.js` exists and that the game operates offline with the network disabled; do not install Android Studio on this laptop.
+
+## Desktop: first Android project and debug build (PowerShell)
+
 ```powershell
 git clone https://github.com/tafeemamair/tap-rush-v3.git
 cd tap-rush-v3
-git checkout build/v4-android-test-prep
 npm install
 npm test
 npm run build
@@ -25,27 +52,28 @@ npx cap sync android
 npx cap open android
 ```
 
-In Android Studio, let Gradle finish syncing and select a connected phone (USB debugging) to run the **debug** variant. For future code updates use `npm run android:sync` before rebuilding.
+If the repository is already cloned, use its clean checkout at the latest `origin/main` instead of cloning a second copy. `npx cap add android` is only needed **once**, when `android/` does not already exist. In Android Studio, allow Gradle to sync, verify the generated compile/target SDK (API 36+), select a USB-connected Android device, and build/run a **debug** APK. In Android Studio, the usual debug APK output is `android/app/build/outputs/apk/debug/app-debug.apk`; verify the actual file, do not assume it exists.
 
-Do not commit Android Studio-generated native files or sign/release with debug credentials. The `android/` directory is ignored during the initial exploration phase. Once a reproducible native baseline is confirmed, explicitly decide whether to version the native project.
+For later web changes: `npm run android:sync` before rebuilding. Do not commit signing keys or passwords. A debug APK is for internal device QA, **not** Google Play submission. Use a signed AAB and controlled key management for release.
 
-## Android testing acceptance
-- [ ] All three modes open and run; target taps register promptly.
-- [ ] Timer at 60 seconds is enforced after background/resume and at input boundaries.
-- [ ] Focus red/cyan rules, 3 shields and independent high scores work.
-- [ ] Score sharing works on a real Android device and handles cancellation.
-- [ ] App opens and works with mobile data and Wi-Fi turned **off** (including readable fonts).
-- [ ] Phone Back button, notifications, screen lock, rotation, safe-area inset and keyboard do not corrupt gameplay.
-- [ ] Game performs acceptably on an 8 GB RAM / entry-midrange Android phone.
-- [ ] No external SDKs, sensitive permissions or undisclosed collection are introduced without updating Data safety disclosures.
+## Android device QA acceptance
+- [ ] Startup, Endless Rush, Timed Rush and Focus Rush work by actual finger taps.
+- [ ] No scoring after 60 seconds, including background, screen lock and resume.
+- [ ] Focus cyan/red, shields, accuracy and separate records behave correctly.
+- [ ] Sound OFF silences all effects (including scheduled notes); music starts/stops and remains off when disabled.
+- [ ] Music/sound/vibration preferences survive force-close/relaunch; vibration can be turned off.
+- [ ] Native sharing works; cancellation and fallback are safe.
+- [ ] Game runs without mobile data or Wi-Fi; fonts remain readable.
+- [ ] Back button, system status/navigation bars, rotation, calls and notifications don't corrupt game state.
+- [ ] 393×852 and at least one smaller Android phone are legible and tap targets are comfortable.
+- [ ] Android WebView console/logcat shows no relevant crashes or unhandled errors.
 
-## Play release handoff (future)
-1. Set up a Google Play Console personal developer account, paying the one-time registration fee and completing verification.
-2. Decide the final app ID, icon, screenshots, store description, privacy disclosure and content rating.
-3. Use Android Studio to produce a **signed AAB** with a safely backed-up release/upload key; never send signing passwords or keystores into GitHub.
-4. Verify target SDK is API 36 or later and review policy compliance at the actual submission date.
-5. Use internal/closed testing. Newly created personal Play Console accounts generally need a qualifying closed test with at least 12 opted-in testers for 14 consecutive days before production-access application.
-6. Only apply for production access and publish after device QA and Play review are satisfied.
+## Google Play preparation (after device QA)
+- Confirm final package ID, game title, icon, feature graphic, screenshots, privacy policy, Data safety declarations, content rating and target audience.
+- Set up developer account and required identity/device verification.
+- Generate a signed **AAB** with securely backed-up upload key, not the debug certificate.
+- For newly created personal Play developer accounts, check the closed-test eligibility and production-access requirements in Play Console.
+- Never claim release readiness until real-device and closed-test evidence is complete.
 
-## Developer/user testing feedback to collect
-Device model, Android version, app version, mode, high score, screenshots/video if possible, what felt enjoyable, where it lagged, whether they voluntarily replayed, and any crash/freeze steps. Avoid asking players for unnecessary personal information.
+## Player feedback record
+Capture test date, game build/commit, phone model and Android version, tested mode, whether a replay was voluntary, score, any lag/crash, sound/music behavior and reproducible issues. Avoid collecting unnecessary personal information.
