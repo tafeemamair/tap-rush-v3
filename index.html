@@ -62,6 +62,8 @@
       <div class="event-progress-bar"><div id="event-progress-fill" class="event-progress-fill"></div></div>
     </div>
 
+    <div id="focus-instruction" class="focus-instruction hidden" aria-label="Focus Rush rules"><span>● TAP CYAN</span><span>✕ AVOID RED</span></div>
+
     <!-- Active Gameplay Playfield -->
     <section id="playfield" class="playfield-area" aria-label="Target Zone"></section>
 
@@ -103,11 +105,13 @@
           </div>
         </div>
 
+        <p class="focus-mode-description">FOCUS RUSH: Tap CYAN. Ignore RED. 60 seconds, 3 shields. Beat your focus high score.</p>
         <div class="btn-group">
           <button id="btn-play" class="btn-cyber-primary" type="button">
             <span class="btn-text">INITIALIZE RUN</span>
           </button>
           <button id="btn-play-timed" class="btn-cyber-ghost" type="button">60-SECOND RUSH</button>
+          <button id="btn-play-focus" class="btn-cyber-ghost" type="button">FOCUS RUSH // 60s</button>
           <button id="btn-open-vault" class="btn-cyber-ghost" type="button">
             ARCHIVES &amp; UNLOCKS
           </button>
@@ -116,6 +120,7 @@
         <div class="start-footer-stats">
           <span>HIGH SCORE: <strong id="start-high-score">0</strong></span>
           <span>60s BEST: <strong id="start-timed-high-score">0</strong></span>
+          <span>FOCUS BEST: <strong id="start-focus-high-score">0</strong></span>
           <span>BEST STREAK: <strong id="start-best-combo">×0</strong></span>
           <span>RUNS: <strong id="start-total-runs">0</strong></span>
         </div>
