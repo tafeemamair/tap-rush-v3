@@ -929,3 +929,14 @@ html, body {
   30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
   40%, 60% { transform: translate3d(4px, 0, 0); }
 }
+/* V4 competitive mode: prominent countdown without obstructing touch targets. */
+.timed-countdown {
+  margin-top: 4px;
+  display: block;
+  color: var(--c-gold);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-shadow: 0 0 8px var(--c-gold-glow);
+}
+.timed-countdown.hidden { display: none !important; }
