@@ -27,7 +27,8 @@
     const scoreText = document.getElementById('go-score')?.textContent || '0';
     const score = Number(scoreText.replace(/[^0-9]/g, '')) || 0;
     const gameUrl = 'https://tap-rush-v3.vercel.app/';
-    const message = `I scored ${score.toLocaleString('en-IN')} in Tap Rush! ⚡ Think you can beat me? Play: ${gameUrl}`;
+    const mode = document.getElementById('go-mode')?.textContent?.trim() || 'Endless Rush';
+    const message = `I scored ${score.toLocaleString('en-IN')} in Tap Rush (${mode})! ⚡ Think you can beat me? Play: ${gameUrl}`;
     status.textContent = '';
 
     try {
