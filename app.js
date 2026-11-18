@@ -15,17 +15,19 @@
     }
 
     init() {
+      if (window.tapRushSettings?.soundEnabled === false) return;
       if (!this.ctx) {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
         this.ctx = new AudioCtx();
       }
-      if (this.ctx.state === 'suspended') {
-        this.ctx.resume();
+      if (this.ctx?.state === 'suspended') {
+        Promise.resolve(this.ctx.resume()).catch(() => {});
       }
     }
 
     playTone(freq, type = 'sine', duration = 0.1, gainVal = 0.2) {
-      if (!this.ctx) return;
+      if (!this.ctx || window.tapRushSettings?.soundEnabled === false) return;
       try {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
@@ -871,6 +873,7 @@
         return;
       }
 
+      window.tapRushSettings?.vibrate(12);
       this.validHits++;
       this.combo++;
       if (this.combo > this.bestCombo) this.bestCombo = this.combo;
@@ -965,6 +968,7 @@
     }
 
     deductLife() {
+      window.tapRushSettings?.vibrate(35);
       this.lives--;
       this.sound.playPenalty();
       this.triggerScreenShake(6);
