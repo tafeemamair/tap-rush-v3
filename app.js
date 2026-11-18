@@ -194,6 +194,7 @@
       const def = {
         highScore: 0,
         timedHighScore: 0,
+        focusHighScore: 0,
         bestCombo: 0,
         maxStage: 1,
         totalRuns: 0,
@@ -371,6 +372,9 @@
       // Debrief & Buttons
       this.btnPlay = document.getElementById('btn-play');
       this.btnPlayTimed = document.getElementById('btn-play-timed');
+      this.btnPlayFocus = document.getElementById('btn-play-focus');
+      this.focusBestDisplay = document.getElementById('start-focus-high-score');
+      this.focusInstruction = document.getElementById('focus-instruction');
       this.timedBestDisplay = document.getElementById('start-timed-high-score');
       this.hudTimer = document.getElementById('hud-timer');
       this.goMode = document.getElementById('go-mode');
@@ -433,8 +437,9 @@
     initEvents() {
       this.btnPlay.addEventListener('click', () => this.startGame('endless'));
       this.btnPlayTimed.addEventListener('click', () => this.startGame('timed'));
+      this.btnPlayFocus.addEventListener('click', () => this.startGame('focus'));
       document.addEventListener('visibilitychange', () => {
-        if (this.isRunning && this.mode === 'timed' && !document.hidden) this.updateTimedClock();
+        if (this.isRunning && this.mode !== 'endless' && !document.hidden) this.updateTimedClock();
       });
       this.btnRetry.addEventListener('click', () => this.startGame(this.mode));
       this.btnGoHome.addEventListener('click', () => this.showStartScreen());
@@ -457,6 +462,7 @@
     updateStartStats() {
       document.getElementById('start-high-score').textContent = this.persistence.data.highScore.toLocaleString();
       this.timedBestDisplay.textContent = (this.persistence.data.timedHighScore || 0).toLocaleString();
+      this.focusBestDisplay.textContent = (this.persistence.data.focusHighScore || 0).toLocaleString();
       document.getElementById('start-best-combo').textContent = `×${this.persistence.data.bestCombo}`;
       document.getElementById('start-total-runs').textContent = this.persistence.data.totalRuns.toLocaleString();
     }
@@ -473,9 +479,10 @@
     startGame(mode = 'endless') {
       clearInterval(this.timedTicker);
       this.timedTicker = null;
-      this.mode = mode === 'timed' ? 'timed' : 'endless';
-      this.timedDeadline = this.mode === 'timed' ? Date.now() + 60000 : 0;
-      this.hudTimer.classList.toggle('hidden', this.mode !== 'timed');
+      this.mode = ['endless', 'timed', 'focus'].includes(mode) ? mode : 'endless';
+      this.timedDeadline = this.mode !== 'endless' ? Date.now() + 60000 : 0;
+      this.hudTimer.classList.toggle('hidden', this.mode === 'endless');
+      this.focusInstruction.classList.toggle('hidden', this.mode !== 'focus');
       this.hudTimer.textContent = '60s';
       this.sound.init();
       this.score = 0;
@@ -507,14 +514,14 @@
 
       this.triggerStageAnnouncement(SECTORS[0]);
       this.scheduleNextSpawn();
-      if (this.mode === 'timed') {
+      if (this.mode !== 'endless') {
         this.timedTicker = setInterval(() => this.updateTimedClock(), 100);
         this.updateTimedClock();
       }
     }
 
     updateTimedClock() {
-      if (!this.isRunning || this.mode !== 'timed') return;
+      if (!this.isRunning || this.mode === 'endless') return;
       const remaining = Math.max(0, this.timedDeadline - Date.now());
       this.hudTimer.textContent = `${Math.ceil(remaining / 1000)}s`;
       if (remaining === 0) this.endGame();
@@ -549,16 +556,18 @@
       };
 
       const timed = this.mode === 'timed';
-      const previousBest = timed ? (this.persistence.data.timedHighScore || 0) : this.persistence.data.highScore;
+      const focus = this.mode === 'focus';
+      const previousBest = focus ? (this.persistence.data.focusHighScore || 0) : timed ? (this.persistence.data.timedHighScore || 0) : this.persistence.data.highScore;
       const isNewRecord = this.score > previousBest;
       let newAchievements = [];
-      if (timed) {
-        if (isNewRecord) this.persistence.data.timedHighScore = this.score;
+      if (timed || focus) {
+        if (isNewRecord && focus) this.persistence.data.focusHighScore = this.score;
+        if (isNewRecord && timed) this.persistence.data.timedHighScore = this.score;
         this.persistence.save();
       } else {
         newAchievements = this.persistence.checkAchievements(runStats);
       }
-      this.goMode.textContent = timed ? '60-SECOND RUSH' : 'ENDLESS RUSH';
+      this.goMode.textContent = focus ? 'FOCUS RUSH' : timed ? '60-SECOND RUSH' : 'ENDLESS RUSH';
 
       // Populate Post-Run Debrief
       this.goScore.textContent = this.score.toLocaleString();
@@ -593,6 +602,7 @@
       clearInterval(this.timedTicker);
       this.timedTicker = null;
       this.hudTimer.classList.add('hidden');
+      this.focusInstruction.classList.add('hidden');
       this.screenGameOver.classList.add('hidden');
       this.screenStart.classList.remove('hidden');
       this.updateStartStats();
@@ -612,7 +622,7 @@
     scheduleNextSpawn() {
       if (!this.isRunning) return;
       const sector = SECTORS[this.stageIndex];
-      let delay = sector.spawnInterval;
+      let delay = this.mode === 'focus' ? Math.max(450, 920 - this.validHits * 7) : sector.spawnInterval;
 
       // Dynamic Sector 5 progression: reduce interval by 0.3% per hit, min 70% of base
       if (this.stageIndex === 4) {
@@ -626,7 +636,7 @@
 
       // Check random event roll if cooldown elapsed (min 16s)
       const now = Date.now();
-      if (!this.activeEvent && sector.eventChance > 0 && (now - this.lastEventTime > 16000)) {
+      if (this.mode !== 'focus' && !this.activeEvent && sector.eventChance > 0 && (now - this.lastEventTime > 16000)) {
         if (Math.random() < sector.eventChance * 0.4) {
           this.triggerDynamicEvent();
         }
@@ -763,7 +773,7 @@
       const radius = 33;
       const { posX, posY } = this.getSafeSpawnPosition(radius);
 
-      const targetType = this.selectTargetType(sector);
+      const targetType = this.mode === 'focus' ? (Math.random() < 0.40 ? TARGET_TYPES.DANGER : TARGET_TYPES.STANDARD) : this.selectTargetType(sector);
       const id = ++this.targetIdCounter;
 
       const targetEl = document.createElement('div');
@@ -773,7 +783,7 @@
       targetEl.style.left = `${posX}px`;
       targetEl.style.top = `${posY}px`;
 
-      let duration = sector.targetDuration;
+      let duration = this.mode === 'focus' ? Math.max(730, 1500 - this.validHits * 14) : sector.targetDuration;
       // Dynamic Sector 5 progression: reduce duration by 0.3% per hit, min 70% of base
       if (this.stageIndex === 4) {
         const reduction = Math.max(0.7, 1 - (this.stageHits * 0.003));
@@ -903,6 +913,7 @@
 
       // Sector Progression
       this.stageHits++;
+      if (this.mode === 'focus') return; // Focus mode does not use sector promotions.
       const currentSector = SECTORS[this.stageIndex];
       if (this.stageHits >= currentSector.targetsRequired && this.stageIndex < SECTORS.length - 1) {
         this.advanceSector();
@@ -918,7 +929,7 @@
       // Successfully Disarmed a Hazard Trap
       if (type === TARGET_TYPES.DANGER) {
         this.trapsDisarmed++;
-        this.score += 50; // Bonus for discipline
+        if (this.mode !== 'focus') this.score += 50; // No points for inaction in Focus Rush.
         this.sound.playDisarm();
         this.updateHUD();
         return;
