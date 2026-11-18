@@ -38,3 +38,15 @@ test('native web asset paths are relative', () => {
   assert.doesNotMatch(html, /(?:src|href)="\/(?!\/)/);
   assert.match(html, /name="viewport"/);
 });
+
+
+test('settings panel and controller are packaged with the web app', () => {
+  assert.match(html, /id="btn-open-settings"/);
+  assert.match(html, /id="modal-settings"/);
+  for (const key of ['sound', 'music', 'vibration']) {
+    assert.match(html, new RegExp('id="setting-' + key + '"'));
+  }
+  assert.match(html, /src="settings\.js"/);
+  assert.match(read('scripts/build.mjs'), /settings\.js/);
+  assert.match(js, /tapRushSettings\?\.soundEnabled/);
+});

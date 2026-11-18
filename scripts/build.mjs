@@ -3,7 +3,7 @@ import { resolve, join } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
 const output = join(root, 'www');
-const assets = ['index.html', 'style.css', 'app.js', 'score-challenge.js'];
+const assets = ['index.html', 'style.css', 'app.js', 'score-challenge.js', 'settings.js'];
 
 for (const file of assets) {
   if (!existsSync(join(root, file))) {
