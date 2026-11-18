@@ -23,6 +23,7 @@
       <div class="hud-metric hud-score-box">
         <span class="hud-label">SCORE</span>
         <span id="hud-score" class="hud-val">00000</span>
+        <span id="hud-timer" class="timed-countdown hidden" aria-live="off">60s</span>
       </div>
 
       <div class="hud-center-group">
@@ -106,6 +107,7 @@
           <button id="btn-play" class="btn-cyber-primary" type="button">
             <span class="btn-text">INITIALIZE RUN</span>
           </button>
+          <button id="btn-play-timed" class="btn-cyber-ghost" type="button">60-SECOND RUSH</button>
           <button id="btn-open-vault" class="btn-cyber-ghost" type="button">
             ARCHIVES &amp; UNLOCKS
           </button>
@@ -113,6 +115,7 @@
 
         <div class="start-footer-stats">
           <span>HIGH SCORE: <strong id="start-high-score">0</strong></span>
+          <span>60s BEST: <strong id="start-timed-high-score">0</strong></span>
           <span>BEST STREAK: <strong id="start-best-combo">×0</strong></span>
           <span>RUNS: <strong id="start-total-runs">0</strong></span>
         </div>
@@ -123,7 +126,7 @@
     <section id="screen-gameover" class="game-screen hidden">
       <div class="screen-content">
         <div class="status-header">
-          <span class="danger-tag">RUN TERMINATED</span>
+          <span class="danger-tag" id="go-mode">ENDLESS RUSH</span>
           <h2 id="go-rank" class="rank-display">CYBER ACE</h2>
           <span class="rank-sub" id="go-rank-sub">REFLEX RATING: 94.2%</span>
         </div>
