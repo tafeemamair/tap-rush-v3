@@ -115,6 +115,9 @@
           <button id="btn-open-vault" class="btn-cyber-ghost" type="button">
             ARCHIVES &amp; UNLOCKS
           </button>
+          <button id="btn-open-settings" class="btn-cyber-ghost" type="button">
+            ⚙ SETTINGS
+          </button>
         </div>
 
         <div class="start-footer-stats">
@@ -213,8 +216,33 @@
         </div>
       </div>
     </section>
+    <!-- AUDIO & FEEDBACK SETTINGS -->
+    <section id="modal-settings" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="modal-window settings-window">
+        <div class="modal-header">
+          <h3 id="settings-title">SETTINGS // V4</h3>
+          <button id="btn-close-settings" class="btn-icon" type="button" aria-label="Close settings">✕</button>
+        </div>
+        <div class="modal-body settings-body">
+          <label class="settings-row" for="setting-sound">
+            <span><strong>SOUND EFFECTS</strong><small>Taps, combos, alerts and rewards</small></span>
+            <input id="setting-sound" type="checkbox" checked />
+          </label>
+          <label class="settings-row" for="setting-music">
+            <span><strong>BACKGROUND MUSIC</strong><small>Original synthesized arcade loop</small></span>
+            <input id="setting-music" type="checkbox" />
+          </label>
+          <label class="settings-row" for="setting-vibration">
+            <span><strong>VIBRATION</strong><small>Feedback on supported devices</small></span>
+            <input id="setting-vibration" type="checkbox" checked />
+          </label>
+          <p class="settings-footnote">Preferences are saved on this device. Background music starts only after a user interaction.</p>
+        </div>
+      </div>
+    </section>
   </main>
 
+  <script src="settings.js"></script>
   <script src="app.js"></script>
   <script src="score-challenge.js"></script>
 </body>
