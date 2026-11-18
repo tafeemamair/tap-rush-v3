@@ -193,6 +193,7 @@
     load() {
       const def = {
         highScore: 0,
+        timedHighScore: 0,
         bestCombo: 0,
         maxStage: 1,
         totalRuns: 0,
@@ -369,6 +370,10 @@
 
       // Debrief & Buttons
       this.btnPlay = document.getElementById('btn-play');
+      this.btnPlayTimed = document.getElementById('btn-play-timed');
+      this.timedBestDisplay = document.getElementById('start-timed-high-score');
+      this.hudTimer = document.getElementById('hud-timer');
+      this.goMode = document.getElementById('go-mode');
       this.btnRetry = document.getElementById('btn-retry');
       this.btnGoHome = document.getElementById('btn-go-home');
       this.btnOpenVault = document.getElementById('btn-open-vault');
@@ -395,6 +400,9 @@
       this.isRunning = false;
       this.activeTargets = new Map();
       this.spawnTimer = null;
+      this.mode = 'endless';
+      this.timedDeadline = 0;
+      this.timedTicker = null;
       this.targetIdCounter = 0;
 
       // In-run Metrics
@@ -423,8 +431,12 @@
     }
 
     initEvents() {
-      this.btnPlay.addEventListener('click', () => this.startGame());
-      this.btnRetry.addEventListener('click', () => this.startGame());
+      this.btnPlay.addEventListener('click', () => this.startGame('endless'));
+      this.btnPlayTimed.addEventListener('click', () => this.startGame('timed'));
+      document.addEventListener('visibilitychange', () => {
+        if (this.isRunning && this.mode === 'timed' && !document.hidden) this.updateTimedClock();
+      });
+      this.btnRetry.addEventListener('click', () => this.startGame(this.mode));
       this.btnGoHome.addEventListener('click', () => this.showStartScreen());
       this.btnOpenVault.addEventListener('click', () => this.openVaultModal());
       this.btnCloseVault.addEventListener('click', () => this.closeVaultModal());
@@ -444,6 +456,7 @@
 
     updateStartStats() {
       document.getElementById('start-high-score').textContent = this.persistence.data.highScore.toLocaleString();
+      this.timedBestDisplay.textContent = (this.persistence.data.timedHighScore || 0).toLocaleString();
       document.getElementById('start-best-combo').textContent = `×${this.persistence.data.bestCombo}`;
       document.getElementById('start-total-runs').textContent = this.persistence.data.totalRuns.toLocaleString();
     }
@@ -457,7 +470,13 @@
     /* ==========================================================================
        GAME RUN LIFECYCLE
        ========================================================================== */
-    startGame() {
+    startGame(mode = 'endless') {
+      clearInterval(this.timedTicker);
+      this.timedTicker = null;
+      this.mode = mode === 'timed' ? 'timed' : 'endless';
+      this.timedDeadline = this.mode === 'timed' ? Date.now() + 60000 : 0;
+      this.hudTimer.classList.toggle('hidden', this.mode !== 'timed');
+      this.hudTimer.textContent = '60s';
       this.sound.init();
       this.score = 0;
       this.lives = 3;
@@ -488,9 +507,23 @@
 
       this.triggerStageAnnouncement(SECTORS[0]);
       this.scheduleNextSpawn();
+      if (this.mode === 'timed') {
+        this.timedTicker = setInterval(() => this.updateTimedClock(), 100);
+        this.updateTimedClock();
+      }
+    }
+
+    updateTimedClock() {
+      if (!this.isRunning || this.mode !== 'timed') return;
+      const remaining = Math.max(0, this.timedDeadline - Date.now());
+      this.hudTimer.textContent = `${Math.ceil(remaining / 1000)}s`;
+      if (remaining === 0) this.endGame();
     }
 
     endGame() {
+      if (!this.isRunning) return;
+      clearInterval(this.timedTicker);
+      this.timedTicker = null;
       this.isRunning = false;
       clearTimeout(this.spawnTimer);
       clearTimeout(this.eventTimeout);
@@ -515,8 +548,17 @@
         accuracy
       };
 
-      const isNewRecord = this.score > this.persistence.data.highScore;
-      const newAchievements = this.persistence.checkAchievements(runStats);
+      const timed = this.mode === 'timed';
+      const previousBest = timed ? (this.persistence.data.timedHighScore || 0) : this.persistence.data.highScore;
+      const isNewRecord = this.score > previousBest;
+      let newAchievements = [];
+      if (timed) {
+        if (isNewRecord) this.persistence.data.timedHighScore = this.score;
+        this.persistence.save();
+      } else {
+        newAchievements = this.persistence.checkAchievements(runStats);
+      }
+      this.goMode.textContent = timed ? '60-SECOND RUSH' : 'ENDLESS RUSH';
 
       // Populate Post-Run Debrief
       this.goScore.textContent = this.score.toLocaleString();
@@ -548,6 +590,9 @@
     }
 
     showStartScreen() {
+      clearInterval(this.timedTicker);
+      this.timedTicker = null;
+      this.hudTimer.classList.add('hidden');
       this.screenGameOver.classList.add('hidden');
       this.screenStart.classList.remove('hidden');
       this.updateStartStats();
