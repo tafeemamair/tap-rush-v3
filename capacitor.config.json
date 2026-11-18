@@ -1,0 +1,6 @@
+{
+  "appId": "com.tafeemamair.taprush",
+  "appName": "Tap Rush",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}
