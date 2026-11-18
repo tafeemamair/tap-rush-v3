@@ -16,6 +16,7 @@ Capacitor 8 requires Node.js 22+, Android Studio 2025.2.1+ and Android SDK API 3
 ```powershell
 git clone https://github.com/tafeemamair/tap-rush-v3.git
 cd tap-rush-v3
+git checkout build/v4-android-test-prep
 npm install
 npm test
 npm run build
